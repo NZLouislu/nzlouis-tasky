@@ -35,14 +35,77 @@ const TaskList: React.FC<TaskListProps> = ({ todos }) => {
     }
 
     const updateTask = (task: Task, updatedStatus: string) => {
-        task.status = updatedStatus
+        const updatedTask = { ...task, status: updatedStatus };
+        const updatedTasks = tasks.map(t =>
+            t.id === task.id ? updatedTask : t
+        );
+        setTasks(updatedTasks);
+        return updatedTask;
+    }
+
+    const moveTaskInColumn = (task: Task, newPositionIndex: number, columnStatus: string) => {
+        let columnList: Task[] = [];
+        if (columnStatus === 'To Do') {
+            columnList = [...todoList];
+        } else if (columnStatus === 'In Progress') {
+            columnList = [...inProgressList];
+        } else if (columnStatus === 'Done') {
+            columnList = [...doneList];
+        }
+
+        const currentIndex = columnList.findIndex(t => t.id === task.id);
+        if (currentIndex === -1) return;
+
+        const [movedTask] = columnList.splice(currentIndex, 1);
+        columnList.splice(newPositionIndex, 0, movedTask);
+
+        if (columnStatus === 'To Do') {
+            setTodoList(columnList);
+        } else if (columnStatus === 'In Progress') {
+            setInProgressList(columnList);
+        } else if (columnStatus === 'Done') {
+            setDoneList(columnList);
+        }
     }
 
     const handleStop = (e: DraggableEvent, data: DraggableData, task: Task) => {
         const status = task.status
         const x = data.x
+        const y = data.y
         const screenWidth = window.innerWidth
         const xRate = x / screenWidth
+
+        if (Math.abs(x) < 50) {
+            let currentList: Task[];
+            if (status === 'To Do') {
+                currentList = todoList;
+            } else if (status === 'In Progress') {
+                currentList = inProgressList;
+            } else if (status === 'Done') {
+                currentList = doneList;
+            } else {
+                setIsStarted(false);
+                return;
+            }
+
+            const currentIndex = currentList.findIndex(t => t.id === task.id);
+            if (currentIndex === -1) {
+                setIsStarted(false);
+                return;
+            }
+
+            const cardHeight = 150;
+            const positionChange = Math.round(y / cardHeight);
+            let newPositionIndex = currentIndex + positionChange;
+            newPositionIndex = Math.max(0, Math.min(newPositionIndex, currentList.length - 1));
+
+            if (newPositionIndex !== currentIndex) {
+                moveTaskInColumn(task, newPositionIndex, status);
+            }
+
+            setIsStarted(false);
+            return;
+        }
 
         if (xRate < 0.1 && xRate > -0.1) {
             setIsStarted(false)
@@ -52,36 +115,36 @@ const TaskList: React.FC<TaskListProps> = ({ todos }) => {
         if (status === 'To Do') {
             if (xRate >= 0.5) {
                 setTodoList(todoList.filter((todo) => todo.id !== task.id))
-                updateTask(task, 'Done')
-                setDoneList([task, ...doneList])
+                const updatedTask = updateTask(task, 'Done')
+                setDoneList([updatedTask, ...doneList])
             } else {
-                updateTask(task, 'In Progress')
+                const updatedTask = updateTask(task, 'In Progress')
                 setTodoList(todoList.filter((todo) => todo.id !== task.id))
-                setInProgressList([task, ...inProgressList])
+                setInProgressList([updatedTask, ...inProgressList])
             }
         } else if (status === 'In Progress') {
             if (x > 0) {
                 setInProgressList(
                     inProgressList.filter((todo) => todo.id !== task.id)
                 )
-                updateTask(task, 'Done')
-                setDoneList([task, ...doneList])
+                const updatedTask = updateTask(task, 'Done')
+                setDoneList([updatedTask, ...doneList])
             } else {
-                updateTask(task, 'To Do')
+                const updatedTask = updateTask(task, 'To Do')
                 setInProgressList(
                     inProgressList.filter((todo) => todo.id !== task.id)
                 )
-                setTodoList([task, ...todoList])
+                setTodoList([updatedTask, ...todoList])
             }
         } else if (status === 'Done') {
             if (xRate <= -0.4) {
-                updateTask(task, 'To Do')
+                const updatedTask = updateTask(task, 'To Do')
                 setDoneList(doneList.filter((todo) => todo.id !== task.id))
-                setTodoList([task, ...todoList])
+                setTodoList([updatedTask, ...todoList])
             } else {
-                updateTask(task, 'In Progress')
+                const updatedTask = updateTask(task, 'In Progress')
                 setDoneList(doneList.filter((todo) => todo.id !== task.id))
-                setInProgressList([task, ...inProgressList])
+                setInProgressList([updatedTask, ...inProgressList])
             }
         }
 

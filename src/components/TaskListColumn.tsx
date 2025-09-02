@@ -40,7 +40,7 @@ const TaskListColumn: React.FC<TaskListColumnProps> = ({
                     onDrag={(e, data) => handleDrag(e, data)}
                     onStop={(e, data) => handleStop(e, data, todo)}
                 >
-                    <div className="handle">
+                    <div className="handle" style={{ cursor: 'move' }}>
                         <TaskCard {...todo} />
                     </div>
                 </Draggable>
